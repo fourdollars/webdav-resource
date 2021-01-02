@@ -1,0 +1,83 @@
+#!/bin/bash
+
+set -euo pipefail
+
+exec 3>&1
+exec 1>&2
+jq -M -S . < /dev/stdin > /tmp/input.json
+
+domain=$(jq -r .source.domain < /tmp/input.json)
+echo "machine $domain" > ~/.netrc
+if [ "$(jq -r '.source | has("username")' < /tmp/input.json)" = 'true' ]; then
+    username=$(jq -r .source.username < /tmp/input.json)
+    echo "  login $username" >> ~/.netrc
+fi
+if [ "$(jq -r '.source | has("password")' < /tmp/input.json)" = 'true' ]; then
+    password=$(jq -r .source.password < /tmp/input.json)
+    echo "  password $password" >> ~/.netrc
+fi
+if [ "$(jq -r '.source | has("ssl")' < /tmp/input.json)" = 'true' ]; then
+    ssl=$(jq -r .source.ssl < /tmp/input.json)
+    if [ "$ssl" = "false" ]; then
+        url="http://$domain"
+    else
+        url="https://$domain"
+    fi
+else
+    url="https://$domain"
+fi
+if [ "$(jq -r '.source | has("port")' < /tmp/input.json)" = 'true' ]; then
+    port=$(jq -r .source.port < /tmp/input.json)
+    url+=":$port"
+fi
+if [ "$(jq -r '.source | has("path")' < /tmp/input.json)" = 'true' ]; then
+    path=$(jq -r .source.path < /tmp/input.json)
+    url+="/$path/"
+else
+    url+="/"
+fi
+if [ "$(jq -r '.params | has("path")' < /tmp/input.json)" = 'true' ]; then
+    path=$(jq -r .params.path < /tmp/input.json)
+    url+="$path/"
+fi
+if [ "$(jq -r '.params | has("from")' < /tmp/input.json)" = 'true' ]; then
+    from=/$(jq -r .params.from < /tmp/input.json)
+fi
+if [ "$(jq -r '.params | has("files")' < /tmp/input.json)" = 'true' ]; then
+    mapfile -t files < <(jq -r '.params.files|.[]' < /tmp/input.json | sort)
+else
+    files=()
+fi
+
+cd "$1/$from"
+if [ "${#files[@]}" = 0 ]; then
+    mapfile -t files < <(find . -type f | cut -c 3- | sort)
+fi
+size=$(du -shc "${files[@]}" | awk '{print $1}' | tail -n 1)
+
+if [ "${#files[@]}" -gt 0 ]; then
+    echo "mput ${files[*]}" | cadaver "$url"
+fi
+
+while read -r line; do
+    if [ -n "$line" ]; then
+        lines+=("$line")
+    fi
+done < <(echo ls | cadaver "$url" | head -n -2)
+
+sha256=$(echo "${lines[@]:2}" | sha256sum | awk '{print $1}')
+
+folders=()
+files=()
+for line in "${lines[@]:2}"; do
+    if [ "$(echo "$line" | awk '{print $1}')" = "Coll:" ]; then
+        folders+=("$(echo "$line" | awk '{print $2}')")
+    else
+        files+=("$(echo "$line" | awk '{print $1}')")
+    fi
+done
+
+IFS=$'\n'
+json='{"version":{"sha256":"'"$sha256"'","url":"'"$url"'"},"metadata":[{"name":"folder","value":"'"${folders[*]}"'"},{"name":"file","value":"'"${files[*]}"'"},{"name":"size","value":"'"$size"'"}]}'
+
+jq -n "$json" >&3
