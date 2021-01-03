@@ -98,3 +98,9 @@ jobs:
 
           docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:$VERSION
+
+      - name: Update Docker Hub Readme
+        uses: peter-evans/dockerhub-description@v2
+        with:
+          username: ${{ github.actor }}
+          password: ${{ secrets.DOCKER_HUB }}
