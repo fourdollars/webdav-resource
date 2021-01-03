@@ -80,7 +80,8 @@ fi
 
 cd "$1"
 if [ "${#files[@]}" -gt 0 ] && [ "$skip" != "true" ]; then
-    echo "mget ${files[*]}" | cadaver "$url"
+    IFS=$' '
+    echo "mget ${files[*]}" | cadaver "$url" | head -n -2
     size=$(du -shc . | awk '{print $1}' | tail -n 1)
 else
     size=""

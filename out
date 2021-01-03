@@ -65,7 +65,8 @@ if [ "${#files[@]}" -gt 0 ]; then
         echo "Some files have existed on $url."
         exit 1
     elif echo "echo ping" | cadaver "$url" | grep "Connection to \`$domain' closed." 2>&1; then
-        echo "mput ${files[*]}" | cadaver "$url"
+        IFS=$' '
+        echo "mput ${files[*]}" | cadaver "$url" | head -n -2
     else
         echo "Connection error."
         exit 1
