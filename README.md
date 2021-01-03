@@ -36,6 +36,7 @@ resource_types:
 * username: optional
 * password: optional
 * path: optional
+* overwrite: optional, true by default and it can be overriden by params.overwrite of put step below.
 
 ```yaml
 resources:
@@ -48,6 +49,7 @@ resources:
     username: YourUserName
     password: YourPassWord
     path: PrimaryFolder
+    overwrite: false
 ```
 
 ### get step
@@ -75,6 +77,7 @@ $ echo "mget file1.txt file2.txt" | cadaver http://domain.name.or.ip:8080/Primar
 
 * from: **required**
 * files: optional
+* overwrite: optional
 * path: optional
 * skip: optional if you don't want the [implicit get step](https://concourse-ci.org/jobs.html#put-step) after the put step to download the same content again in order to save the execution time.
 
@@ -85,6 +88,7 @@ $ echo "mget file1.txt file2.txt" | cadaver http://domain.name.or.ip:8080/Primar
     files:
       - file1.txt
       - file2.txt
+    overwrite: false
     path: SecondaryDirectory
   get_params:
     skip: true
@@ -92,5 +96,6 @@ $ echo "mget file1.txt file2.txt" | cadaver http://domain.name.or.ip:8080/Primar
 ```shell
 # It acts like the following commands.
 $ cd /tmp/build/put/SomeFolderInTask
-$ echo "mput file1.txt file2.txt" | cadaver http://domain.name.or.ip:8080/PrimaryFolder/SecondaryFolder
+$ echo "ls" | cadaver http://domain.name.or.ip:8080/PrimaryFolder/SecondaryFolder | grep -P file1.txt\|file2.txt || \
+  echo "mput file1.txt file2.txt" | cadaver http://domain.name.or.ip:8080/PrimaryFolder/SecondaryFolder
 ```

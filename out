@@ -36,6 +36,7 @@ if [ "$(jq -r '.source | has("path")' < /tmp/input.json)" = 'true' ]; then
 else
     url+="/"
 fi
+overwrite=$(jq -r .source.overwrite < /tmp/input.json) # It will be 'null' if it is not provided.
 if [ "$(jq -r '.params | has("path")' < /tmp/input.json)" = 'true' ]; then
     path=$(jq -r .params.path < /tmp/input.json)
     url+="$path/"
@@ -48,6 +49,9 @@ if [ "$(jq -r '.params | has("files")' < /tmp/input.json)" = 'true' ]; then
 else
     files=()
 fi
+if [ "$(jq -r '.params | has("overwrite")' < /tmp/input.json)" = 'true' ]; then
+    overwrite=$(jq -r .params.overwrite < /tmp/input.json)
+fi
 
 cd "$1/$from"
 if [ "${#files[@]}" = 0 ]; then
@@ -56,7 +60,16 @@ fi
 size=$(du -shc "${files[@]}" | awk '{print $1}' | tail -n 1)
 
 if [ "${#files[@]}" -gt 0 ]; then
-    echo "mput ${files[*]}" | cadaver "$url"
+    IFS=$'|' pattern="${files[*]}"
+    if [ "$overwrite" = "false" ] && echo "ls" | cadaver "$url" | grep -P "${pattern}"; then
+        echo "Some files have existed on $url."
+        exit 1
+    elif echo "echo ping" | cadaver "$url" | grep "Connection to \`$domain' closed." 2>&1; then
+        echo "mput ${files[*]}" | cadaver "$url"
+    else
+        echo "Connection error."
+        exit 1
+    fi
 fi
 
 while read -r line; do
