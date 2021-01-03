@@ -65,23 +65,39 @@ echo "${lines[*]:2}" | sort
 sha256=$(echo "${lines[*]:2}" | sort | sha256sum | awk '{print $1}')
 
 if [ "$(jq -r '.params | has("files")' < /tmp/input.json)" = 'true' ]; then
-    folders=()
-    mapfile -t files < <(jq -r '.params.files|.[]' < /tmp/input.json | sort)
+    mapfile -t files_to_get < <(jq -r '.params.files|.[]' < /tmp/input.json | sort)
 else
-    files=()
-    for line in "${lines[@]:2}"; do
-        if [ "$(echo "$line" | awk '{print $1}')" = "Coll:" ]; then
-            folders+=("$(echo "$line" | awk '{print $2}')")
-        else
-            files+=("$(echo "$line" | awk '{print $1}')")
-        fi
-    done
+    files_to_get=()
 fi
+
+folders=()
+files=()
+for line in "${lines[@]:2}"; do
+    if [ "$(echo "$line" | awk '{print $1}')" = "Coll:" ]; then
+        folders+=("$(echo "$line" | awk '{print $2}')")
+    else
+        files+=("$(echo "$line" | awk '{print $1}')")
+    fi
+done
 
 cd "$1"
 if [ "${#files[@]}" -gt 0 ] && [ "$skip" != "true" ]; then
     IFS=$' '
-    echo "mget ${files[*]}" | cadaver "$url" | head -n -2
+    if [ "${#files_to_get[@]}" -gt 0 ]; then
+        not_exist=
+        for name in "${files_to_get[@]}"; do
+            if ! [[ "${files[*]}" =~ $name ]]; then
+                echo "\`$name' doesn't exist on $url."
+                not_exist=1
+            fi
+        done
+        if [ -n "$not_exist" ]; then
+            exit 1
+        fi
+        echo "mget ${files_to_get[*]}" | cadaver "$url" | head -n -2
+    else
+        echo "mget ${files[*]}" | cadaver "$url" | head -n -2
+    fi
     size=$(du -shc . | awk '{print $1}' | tail -n 1)
 else
     size=""
