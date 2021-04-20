@@ -84,17 +84,34 @@ cd "$1"
 if [ "${#files[@]}" -gt 0 ] && [ "$skip" != "true" ]; then
     IFS=$' '
     if [ "${#files_to_get[@]}" -gt 0 ]; then
-        not_exist=
-        for name in "${files_to_get[@]}"; do
-            if ! [[ "${files[*]}" =~ $name ]]; then
-                echo "\`$name' doesn't exist on $url."
-                not_exist=1
+        dir=()
+        base=()
+        for item in "${files_to_get[@]}"; do
+            dir+=("$(dirname "$item")")
+            base+=("$(basename "$item")")
+        done
+        same=1
+        for idx in "${!dir[@]}"; do
+            if [ "${dir[0]}" != "${dir[$idx]}" ]; then
+                same=0
+                break
             fi
         done
-        if [ -n "$not_exist" ]; then
-            exit 1
+        if [ "$same" = 1 ]; then
+            if [ "${dir[0]}" = '.' ]; then
+                echo "mget ${base[*]}" | cadaver "$url" | head -n -2
+            else
+                echo "mget ${base[*]}" | cadaver "$url${dir[0]}/" | head -n -2
+            fi
+        else
+            for idx in "${!dir[@]}"; do
+                if [ "${dir[$idx]}" = '.' ]; then
+                    echo "get ${base[$idx]}" | cadaver "$url" | head -n -2
+                else
+                    echo "get ${base[$idx]}" | cadaver "$url${dir[$idx]}/" | head -n -2
+                fi
+            done
         fi
-        echo "mget ${files_to_get[*]}" | cadaver "$url" | head -n -2
     else
         echo "mget ${files[*]}" | cadaver "$url" | head -n -2
     fi
