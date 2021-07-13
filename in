@@ -121,6 +121,6 @@ else
 fi
 
 IFS=$'\n'
-json='{"version":{"sha256":"'"$sha256"'","url":"'"$url"'"},"metadata":[{"name":"folder","value":"'"${folders[*]}"'"},{"name":"file","value":"'"${files[*]}"'"},{"name":"size","value":"'"$size"'"}]}'
+json='{"version":{"digest":"'"sha256:$sha256"'","url":"'"$url"'"},"metadata":[{"name":"folder","value":"'"${folders[*]}"'"},{"name":"file","value":"'"${files[*]}"'"},{"name":"size","value":"'"$size"'"}]}'
 
 jq -n "$json" >&3

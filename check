@@ -57,6 +57,6 @@ IFS=$'\n'
 echo "${lines[*]:2}" | sort
 sha256=$(echo "${lines[*]:2}" | sort | sha256sum | awk '{print $1}')
 
-json='[{"sha256":"'"$sha256"'","url":"'"$url"'"}]'
+json='[{"digest":"'"sha256:$sha256"'","url":"'"$url"'"}]'
 
 jq -n "$json" >&3
