@@ -46,6 +46,11 @@ trim() {
     printf '%s' "$var"
 }
 
+if ! echo "echo ping" | cadaver "$url" | grep "Connection to \`$domain' closed." >/dev/null 2>&1; then
+    echo "Connection error."
+    exit 1
+fi
+
 lines=()
 while read -r line; do
     if [ -n "$line" ]; then
