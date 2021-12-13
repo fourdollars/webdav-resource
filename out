@@ -4,20 +4,20 @@ set -euo pipefail
 
 exec 3>&1
 exec 1>&2
-jq -M -S . < /dev/stdin > /tmp/input.json
+payload="$(cat <&0)"
 
-domain=$(jq -r .source.domain < /tmp/input.json)
+domain=$(jq -r .source.domain <<< "$payload")
 echo "machine $domain" > ~/.netrc
-if [ "$(jq -r '.source | has("username")' < /tmp/input.json)" = 'true' ]; then
-    username=$(jq -r .source.username < /tmp/input.json)
+if [ "$(jq -r '.source | has("username")' <<< "$payload")" = 'true' ]; then
+    username=$(jq -r .source.username <<< "$payload")
     echo "  login $username" >> ~/.netrc
 fi
-if [ "$(jq -r '.source | has("password")' < /tmp/input.json)" = 'true' ]; then
-    password=$(jq -r .source.password < /tmp/input.json)
+if [ "$(jq -r '.source | has("password")' <<< "$payload")" = 'true' ]; then
+    password=$(jq -r .source.password <<< "$payload")
     echo "  password $password" >> ~/.netrc
 fi
-if [ "$(jq -r '.source | has("ssl")' < /tmp/input.json)" = 'true' ]; then
-    ssl=$(jq -r .source.ssl < /tmp/input.json)
+if [ "$(jq -r '.source | has("ssl")' <<< "$payload")" = 'true' ]; then
+    ssl=$(jq -r .source.ssl <<< "$payload")
     if [ "$ssl" = "false" ]; then
         url="http://$domain"
     else
@@ -26,31 +26,31 @@ if [ "$(jq -r '.source | has("ssl")' < /tmp/input.json)" = 'true' ]; then
 else
     url="https://$domain"
 fi
-if [ "$(jq -r '.source | has("port")' < /tmp/input.json)" = 'true' ]; then
-    port=$(jq -r .source.port < /tmp/input.json)
+if [ "$(jq -r '.source | has("port")' <<< "$payload")" = 'true' ]; then
+    port=$(jq -r .source.port <<< "$payload")
     url+=":$port"
 fi
-if [ "$(jq -r '.source | has("path")' < /tmp/input.json)" = 'true' ]; then
-    path=$(jq -r .source.path < /tmp/input.json)
+if [ "$(jq -r '.source | has("path")' <<< "$payload")" = 'true' ]; then
+    path=$(jq -r .source.path <<< "$payload")
     url+="/$path/"
 else
     url+="/"
 fi
-overwrite=$(jq -r .source.overwrite < /tmp/input.json) # It will be 'null' if it is not provided.
-if [ "$(jq -r '.params | has("path")' < /tmp/input.json)" = 'true' ]; then
-    path=$(jq -r .params.path < /tmp/input.json)
+overwrite=$(jq -r .source.overwrite <<< "$payload") # It will be 'null' if it is not provided.
+if [ "$(jq -r '.params | has("path")' <<< "$payload")" = 'true' ]; then
+    path=$(jq -r .params.path <<< "$payload")
     url+="$path/"
 fi
-if [ "$(jq -r '.params | has("from")' < /tmp/input.json)" = 'true' ]; then
-    from=/$(jq -r .params.from < /tmp/input.json)
+if [ "$(jq -r '.params | has("from")' <<< "$payload")" = 'true' ]; then
+    from=/$(jq -r .params.from <<< "$payload")
 fi
-if [ "$(jq -r '.params | has("files")' < /tmp/input.json)" = 'true' ]; then
-    mapfile -t files < <(jq -r '.params.files|.[]' < /tmp/input.json | sort)
+if [ "$(jq -r '.params | has("files")' <<< "$payload")" = 'true' ]; then
+    mapfile -t files < <(jq -r '.params.files|.[]' <<< "$payload" | sort)
 else
     files=()
 fi
-if [ "$(jq -r '.params | has("overwrite")' < /tmp/input.json)" = 'true' ]; then
-    overwrite=$(jq -r .params.overwrite < /tmp/input.json)
+if [ "$(jq -r '.params | has("overwrite")' <<< "$payload")" = 'true' ]; then
+    overwrite=$(jq -r .params.overwrite <<< "$payload")
 fi
 
 cd "$1/$from"
