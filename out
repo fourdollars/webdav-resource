@@ -55,7 +55,8 @@ fi
 
 cd "$1/$from"
 if [ "${#files[@]}" = 0 ]; then
-    mapfile -t files < <(find . -type f | cut -c 3- | sort)
+    mapfile -t files < <(find . -type f | cut -c 3- | sort | sed 's/\\/\\\\/g')
+    mapfile -t uploads < <(find . -type f | cut -c 3- | sort | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed 's/.*/"&"/')
 fi
 size=$(du -shc "${files[@]}" | awk '{print $1}' | tail -n 1)
 
@@ -64,9 +65,9 @@ if [ "${#files[@]}" -gt 0 ]; then
     if [ "$overwrite" = "false" ] && echo "ls" | cadaver "$url" | grep -P "${pattern}"; then
         echo "Some files have existed on $url."
         exit 1
-    elif echo "echo ping" | cadaver "$url" | grep "Connection to \`$domain' closed." >/dev/null 2>&1; then
+    elif echo "echo help" | cadaver "$url" | grep "Connection to \`$domain' closed." >/dev/null 2>&1; then
         IFS=$' '
-        echo "mput ${files[*]}" | cadaver "$url" | head -n -2
+        echo "mput ${uploads[*]}" | cadaver "$url" | head -n -2
     else
         echo "Connection error."
         exit 1
