@@ -55,7 +55,7 @@ fi
 
 cd "$1/$from"
 if [ "${#files[@]}" = 0 ]; then
-    mapfile -t files < <(find . -type f | cut -c 3- | sort | sed 's/\\/\\\\/g')
+    mapfile -t files < <(find . -type f | cut -c 3- | sort | sed 's/\\/\\\\/g' | sed 's/(/\\(/g' | sed 's/)/\\)/g' | sed 's/|/\\|/g')
     mapfile -t uploads < <(find . -type f | cut -c 3- | sort | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed 's/.*/"&"/')
 fi
 size=$(du -shc "${files[@]}" | awk '{print $1}' | tail -n 1)
